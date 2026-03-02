@@ -1,0 +1,7 @@
+__pycache__/
+.venv/
+.claude/
+**/__pycache__/
+saved_traj_ur3e/
+*.pyc
+cdf/data/
