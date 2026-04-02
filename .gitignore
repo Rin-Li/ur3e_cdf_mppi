@@ -1,7 +1,44 @@
+# Python
 __pycache__/
-.venv/
-.claude/
 **/__pycache__/
-saved_traj_ur3e/
 *.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Claude
+.claude/
+
+# ── Runtime data (generated, not source) ──────────────────────────────────────
+
+# Saved trajectories
+saved_traj_ur3e/
+
+# Training data
 cdf/data/
+
+# Trained model weights
+cdf/model/
+rdf/models/
+
+# Calibration runtime files (keep T_cam2base + poses, ignore backups + obstacles)
+visual/calib_data/obstacles.npy
+visual/calib_data/*_backup*
+
+# ── ROS2 workspace build artifacts ────────────────────────────────────────────
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# ── Media ──────────────────────────────────────────────────────────────────────
+
+# Video recordings
+recordings/
+*.mp4
+*.avi
+*.mkv
+
+# Generated images
+visual/charuco_board.png
+visual/calib_data/

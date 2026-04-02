@@ -96,4 +96,98 @@ ur3e_cdf_mppi/
 
 ## Dependencies
 
-`torch`, `pybullet`, `trimesh`, `numpy`, `pytorch3d` (for farthest point sampling in data processing), `torchmin` (L-BFGS for data generation)
+All dependencies live in `.venv` (Python 3.10). Key packages:
+- `torch`, `numpy`, `scipy`, `pybullet`, `trimesh`, `opencv-python`
+- `torchmin` (installed from `https://github.com/rfeinman/pytorch-minimize.git`)
+- `scikit-image`, `mesh-to-sdf`
+- `pytorch3d` — only needed for `cdf/data_generator.py` (training data), not for real-world pipeline
+- `rtde_receive` — system-level package at `/usr/lib/python3/dist-packages/`, exposed to `.venv` via `.venv/lib/python3.10/site-packages/system_extras.pth`
+- ROS2 Humble packages — exposed via `.venv/lib/python3.10/site-packages/ros2_humble.pth`
+
+Always use `.venv/bin/python` to run scripts, not system python or conda.
+
+---
+
+## Sim-to-Real Pipeline
+
+The system transitions from simulation to reality in three phases. All real-world files live in `visual/` and `planner/`.
+
+### Hardware
+- **Robot**: UR3e at `192.168.1.102`, controlled via RTDE (`rtde_receive`, `rtde_control`)
+- **Camera**: Orbbec Gemini 335L, fixed in environment (**eye-to-hand**), USB 3.0
+- **ROS2 workspace**: `~/ros2_ws` (Humble)
+
+### Phase 1 — Hand-Eye Calibration
+
+**One-time setup. Re-run only if camera is physically moved.**
+
+ChArUco board (7×5, square=40mm, marker=30mm, `DICT_5X5_50`) is rigidly mounted on the robot flange during calibration, then removed.
+
+```bash
+python3 visual/generate_charuco.py         # → visual/charuco_board.png
+bash visual/start_camera.sh
+source /opt/ros/humble/setup.bash && source ~/ros2_ws/install/setup.bash
+python3 visual/collect_calib_poses.py      # → visual/calib_data/poses.npz
+python3 visual/solve_handeye.py            # → visual/calib_data/T_cam2base.npz + .yaml
+```
+
+### Phase 2 — Real-Time Obstacle Detection
+
+```bash
+source /opt/ros/humble/setup.bash && source ~/ros2_ws/install/setup.bash
+python3 visual/obstacle_detector.py
+```
+
+- Loads `T_cam2base`, transforms depth point cloud to robot base frame
+- **X/Y axes are flipped** after transform (`pts_base[:, :2] *= -1`) — this corrects for camera mounting orientation
+- Filters to workspace X[-0.4,0.4] × Y[-0.4,0.4] × Z[0,0.4], voxel downsamples at 0.02m
+- Saves `visual/calib_data/obstacles.npy`
+
+### Phase 3 — Real-World MPPI Planner
+
+```bash
+.venv/bin/python planner/planner_ur3e_real.py
+```
+
+Key behaviour:
+- Reads `q_start` from robot via RTDE at planning time
+- Loads `obstacles.npy` from camera
+- After planning, runs **cubic spline interpolation** (`resample_trajectory`) to 4000 points before preview/send
+- PyBullet preview plays 200 frames at real-time speed (~8s); Ctrl+C skips to menu
+- Menu: `s` send · `r` replay · `p` replan (re-reads robot + obstacles) · `q` cancel
+- Planning failure does **not** exit — shows preview and lets user decide
+
+### Full Run Order (Real World)
+
+```bash
+bash start_all_terminals.sh          # full (7 terminals)
+bash start_all_terminals.sh obs      # obs debug only (camera + detector + PyBullet)
+bash start_all_terminals.sh calib    # calibration only
+```
+
+### Real-World Project Structure
+
+```
+visual/
+├── start_camera.sh
+├── generate_charuco.py
+├── collect_calib_poses.py
+├── solve_handeye.py
+├── obstacle_detector.py             # depth cloud → base-frame obstacle points
+├── visualize_obstacles_pybullet.py  # real-time robot pose + obstacles in PyBullet
+├── pick_color.py                    # HSV color calibration for cube detection
+├── record_video.py                  # record color stream to mp4 with live preview
+└── calib_data/
+    ├── poses.npz
+    ├── T_cam2base.npz               # calibration result
+    ├── T_cam2base.yaml
+    ├── cube_hsv.npz                 # cube HSV color range
+    └── obstacles.npy                # current obstacle point cloud (N, 3)
+
+planner/
+├── planner_ur3e.py                  # simulation planner
+├── planner_ur3e_real.py             # real-world planner
+└── obstacle_manager.py
+
+recordings/                          # video recordings (auto-created)
+```

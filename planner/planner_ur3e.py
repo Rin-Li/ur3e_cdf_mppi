@@ -49,7 +49,7 @@ CONS_U: float = 1.5  # control magnitude limit
 GOAL_ANGLE_COST_W: float = 10
 OBS_ANGLE_PENALTY_W: float = 20
 OBST_PENALTY_ANGLE_BASE: float = 90.0
-OBST_PENALTY_DIST: float = 0.5
+OBST_PENALTY_DIST: float = 0.8
 
 # --- Success condition ---
 EPS_GOAL: float = 0.05
@@ -152,8 +152,6 @@ class MPPIUR3e:
         dist_val = dist.item()
         grad_vec = grad.squeeze(0)
         grad_norm = grad_vec.norm().item()
-        print(f"    [Cost] dist to obs: {dist_val:.4f}, grad norm: {grad_norm:.4f}")
-
         if (dist_val < OBST_PENALTY_DIST) and (grad_norm > 1e-6) and (dist_val < goal_norm.item()):
             grad_vec = grad_vec / (grad_norm + 1e-8)
             cos_obs = (u_batch @ grad_vec) / (move_norm * (grad_vec.norm() + 1e-8))

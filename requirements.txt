@@ -1,0 +1,40 @@
+# ============================================================
+# UR3e CDF-MPPI — Python dependencies
+# Install into .venv:  .venv/bin/pip install -r requirements.txt
+# ============================================================
+
+# --- Core scientific stack ---
+numpy
+scipy
+
+# --- Deep learning ---
+torch                        # install the CUDA build manually if needed:
+                             # pip install torch --index-url https://download.pytorch.org/whl/cu118
+torchvision                  # needed by some torch utilities
+
+# --- Robot geometry ---
+trimesh
+pybullet
+mesh-to-sdf
+scikit-image                 # skimage, used by rdf/ur_rdf.py
+
+# --- Computer vision ---
+opencv-python                # cv2, cv2.aruco
+PyYAML                       # yaml, used by solve_handeye.py
+
+# --- Optimisation ---
+# torchmin — must be installed from source (no PyPI release):
+#   .venv/bin/pip install git+https://github.com/rfeinman/pytorch-minimize.git
+
+# ============================================================
+# NOT managed by pip — set up separately:
+# ============================================================
+# rtde_receive   — system package at /usr/lib/python3/dist-packages/
+#                  exposed to .venv via system_extras.pth
+#
+# rclpy / sensor_msgs / trajectory_msgs / cv_bridge / etc.
+#                — ROS2 Humble packages at /opt/ros/humble/
+#                  exposed to .venv via ros2_humble.pth
+#
+# pytorch3d      — only needed for cdf/data_generator.py (training data)
+#                  install separately following official instructions

@@ -108,7 +108,6 @@ class DataGenerator():
         # compute d
         Np = q.shape[0]
         q_template,link_idx = self.given_x_find_q(x)
-        print(q_template.shape)
 
         if link_idx.min() == 0:
             return torch.zeros(Np).to(self.device)
